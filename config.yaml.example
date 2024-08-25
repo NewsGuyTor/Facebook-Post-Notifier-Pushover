@@ -2,8 +2,9 @@ fb_cred:
   account: '<fb_account>'
   password: '<fb_password>'
 
-line_bot:
-  channel_access_token: '<channel_access_token>'
+pushover:
+  api_token: '<your_pushover_app_token>'
+  user_key: '<your_pushover_user_key>'
 
 group_id: '<fb_group_to_scrape>'
 
@@ -12,8 +13,4 @@ keywords:
   - '<keyword2>'
   - '<keyword3>'
 
-receivers:
-    <user/group name>: '<user/group's id>'
-    <user/group name>: '<user/group's id>'
-
-message: <message_format>
+message: '<message_format>'
