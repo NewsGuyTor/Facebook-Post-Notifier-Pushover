@@ -1,4 +1,4 @@
 PyYAML~=6.0
 selenium~=4.4.3
-line-bot-sdk~=2.4.2
+requests~=2.31.0
 pycryptodome~=3.17
