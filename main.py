@@ -5,16 +5,13 @@ import pickle
 import logging
 import yaml
 import sys
-from linebot import LineBotApi
-from linebot.models import TextSendMessage
-from linebot.exceptions import LineBotApiError
+import requests
 from fb_scraper.utils.crypto.decrypt import decrypt
 from fb_scraper.utils.logger_config import setup_logger
 from fb_scraper.scraper import FacebookScraper, Sort
 from selenium.common.exceptions import TimeoutException
 
 logger = setup_logger(__name__)
-
 
 def decrypt_yaml(path):
     decrypted_data = decrypt(path)
@@ -25,6 +22,17 @@ def decrypt_yaml(path):
         logger.error("YAML failed to load, may be due to incorrect password or invalid YAML format.")
         sys.exit()
 
+def send_pushover_message(token, user_key, message):
+    url = "https://api.pushover.net/1/messages.json"
+    data = {
+        "token": token,
+        "user": user_key,
+        "message": message,
+    }
+    response = requests.post(url, data=data)
+    if response.status_code != 200:
+        logger.error(f"Failed to send message: {response.text}")
+        raise Exception("Pushover message send failed")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -55,7 +63,8 @@ if __name__ == '__main__':
     scraper = FacebookScraper(headless=headless)
     scraper.login(config['fb_cred']['account'], config['fb_cred']['password'])
 
-    line_bot_api = LineBotApi(config['line_bot']['channel_access_token'])
+    pushover_token = config['pushover']['api_token']
+    user_key = config['pushover']['user_key']
     keywords = config['keywords']
     prev_post_id = None
     while True:
@@ -78,13 +87,12 @@ if __name__ == '__main__':
                 logger.info('Keyword found!')
                 push_message = config['message'].format(url=latest_post['url'], content=latest_post['content'],
                                                         listing_text=latest_post['listing_text'])
-                for user in config['receivers']:
-                    try:
-                        logger.info('Sending message to {}...'.format(user))
-                        line_bot_api.push_message(config['receivers'][user], TextSendMessage(text=push_message))
-                    except LineBotApiError as e:
-                        logger.error(e)
-                        raise e
+                try:
+                    logger.info('Sending message via Pushover...')
+                    send_pushover_message(pushover_token, user_key, push_message)
+                except Exception as e:
+                    logger.error(e)
+                    raise e
 
         prev_post_id = latest_post['id']
         logger.info(f'Waiting {interval} secs...')
